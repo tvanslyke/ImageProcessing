@@ -53,7 +53,6 @@ def mahal_slow(img, select = None, mean_pix = None):
     output = np.zeros((meandiff.size/3, 1))
     for index, diff in tqdm.tqdm(enumerate(meandiff)):
         output[index] =  np.dot(np.dot(diff, invcovar)[np.newaxis, :], diff[:, np.newaxis])
-    print img.shape[:-1], output.shape
     return np.sqrt(output).reshape(img.shape[:-1])
     
 def mahal(img, select = None, mean_pix = None):
@@ -117,7 +116,7 @@ def mahal(img, select = None, mean_pix = None):
     
     # calculate the first multiplication
     output = np.dot(meandiff, invcovar)
-    print output.shape,meandiff.shape
+    
     # do literally everything else all in this step, then reshape back to image dimensions and return
     output = np.sqrt(np.einsum('ij,ij->i', output, meandiff))
     return output.reshape(img.shape[:-1])
