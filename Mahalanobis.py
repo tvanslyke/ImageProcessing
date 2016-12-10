@@ -52,7 +52,6 @@ def mahal_slow(img, select = None, mean_pix = None):
     invcovar = inv(np.cov(np.transpose(select)))
     output = np.zeros((meandiff.size/3, 1))
     for index, diff in tqdm.tqdm(enumerate(meandiff)):
-        #print np.dot(diff, invcovar)[np.newaxis, :], diff[:, np.newaxis]
         output[index] =  np.dot(np.dot(diff, invcovar)[np.newaxis, :], diff[:, np.newaxis])
     print img.shape[:-1], output.shape
     return np.sqrt(output).reshape(img.shape[:-1])
@@ -172,7 +171,7 @@ if __name__ == '__main__':
 
         # do mahalanobis distance calculation
         t = time()
-        filt = mahal_slow(img)
+        filt = mahal(img)
         times.append(time() - t)
         
         # put images in the 'plot buffer' if you will
