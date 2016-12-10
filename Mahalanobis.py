@@ -34,7 +34,7 @@ import tqdm # "sudo pip install tqdm" or "sudo apt-get install python-tqdm" for
 
 
 # run this to see just how much slower one python for loop can be
-def mahal_slow(img, select = 10000, mean_pix = None):
+def mahal_slow(img, select = None, mean_pix = None):
     """ Shitty version of Mahalanobis that is one million times slower left here 
         for comparison. This is NOT the original implementation, but rather one made
         to closely resemble the one below, but uses a Python for-loop instead of 
@@ -47,13 +47,14 @@ def mahal_slow(img, select = 10000, mean_pix = None):
         select = arr
     else:
         select = np.random.choice(arr, select) if isinstance(select,int) else arr[select]
-        
+    
     meandiff = arr - (mean_pix if mean_pix is not None else np.mean(select, axis = 0))
     invcovar = inv(np.cov(np.transpose(select)))
-    
-    for index in tqdm.tqdm(xrange(len(output))):
-        diff = (arr[index]-meanval)
-        output[index] =  np.dot(np.dot(diff, invcovar), np.transpose(diff))
+    output = np.zeros((meandiff.size/3, 1))
+    for index, diff in tqdm.tqdm(enumerate(meandiff)):
+        #print np.dot(diff, invcovar)[np.newaxis, :], diff[:, np.newaxis]
+        output[index] =  np.dot(np.dot(diff, invcovar)[np.newaxis, :], diff[:, np.newaxis])
+    print img.shape[:-1], output.shape
     return np.sqrt(output).reshape(img.shape[:-1])
     
 def mahal(img, select = None, mean_pix = None):
@@ -75,6 +76,9 @@ def mahal(img, select = None, mean_pix = None):
                  if you have a bunch of images that are the same size.  
                  The indices could be reused each time rather than recalculating
                  every time you call the function.
+                 
+                 If select is 'None', then the every pixel in the image is 
+                 included in the sample.
         """
     # Flatten image to just one long array of RGB-valued pixels 
     arr = np.reshape(img, (img.shape[0] * img.shape[1], 3))
@@ -168,7 +172,7 @@ if __name__ == '__main__':
 
         # do mahalanobis distance calculation
         t = time()
-        filt = mahal(img)
+        filt = mahal_slow(img)
         times.append(time() - t)
         
         # put images in the 'plot buffer' if you will
