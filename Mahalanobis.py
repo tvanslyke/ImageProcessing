@@ -42,19 +42,21 @@ def mahal_slow(img, select = 10000):
         using native Python functionality as much as possible for this application."""
         
     arr = np.reshape(img, (img.shape[0] * img.shape[1], 3))
-    if isinstance(select,int):
-        select = np.random.choice(arr.shape[0], select)
-    select = arr[select]
-    invcovar = inv(np.cov(np.transpose(select)))
-    meanval =np.mean(select, axis = 0)
-    output = np.zeros((img.shape[0] * img.shape[1], 1))
-    mahalanobis = lambda x,y: np.dot(np.dot(np.array([x]), y),np.transpose([x]))
-    for index in tqdm.tqdm(xrange(len(output))):
-        output[index] = mahalanobis(arr[index]-meanval, invcovar)
-    ret = np.sqrt(output)
-    return ret.reshape(img.shape[:-1]), ret
     
-def mahal(img, select = 10000):
+    if select is None:
+        select = arr
+    else:
+        select = np.random.choice(arr, select) if isinstance(select,int) else arr[select]
+        
+    meandiff = arr - (mean_pix if mean_pix is not None else np.mean(select, axis = 0))
+    invcovar = inv(np.cov(np.transpose(select)))
+    
+    for index in tqdm.tqdm(xrange(len(output))):
+        diff = (arr[index]-meanval)
+        output[index] =  np.dot(np.dot(diff, invcovar), np.transpose(diff))
+    return np.sqrt(output).reshape(img.shape[:-1])
+    
+def mahal(img, select = None, mean_pix = None):
     """ Improved Mahalanobis distance algorithm originally written 
         by Brandon Doyle.  This is written with care taken to NOT 
         use Python loops.  The key breakthrough here is numpy.einsum().
@@ -76,21 +78,29 @@ def mahal(img, select = 10000):
         """
     # Flatten image to just one long array of RGB-valued pixels 
     arr = np.reshape(img, (img.shape[0] * img.shape[1], 3))
-    
-    # if 'select' is a number, generate a list of size 'select' containing
-    # random indices in 'arr'
-    if isinstance(select,int):
-        select = np.random.choice(arr.shape[0], select)
-    # choose pixels from 'arr' at positions specified in 'select' 
-    select = arr[select]
-    
-    # calculate the covariance matrix and immediately calculate its inverse
+    # no sampling.  use the entire image
+    if select is None:
+        select = arr
+    else:
+        # if 'select' is a number, generate an array of size 'select' containing
+        # random pixels in 'arr'.
+        # otherwise it should be a list of indices of pixels to choose.
+        select = np.random.choice(arr, select) if isinstance(select,int) else arr[select]
+            
+    # calculate the covariance matrix inverse using the sampled array
     invcovar = inv(np.cov(np.transpose(select)))
+
+    if mean_pix is None:
+        # no provided mean RGB vector.  assume we are using the images own 
+        # mean RGB value
+        meandiff = arr - np.mean(select, axis = 0)
+    else:
+        meandiff = arr - mean_pix
     
-    # calculate the mean value of pixels in 'select'. We could get the actual mean from
-    # arr', but it's faster to do it from the sub-sample we already have in 'select'.
-    meandiff = arr - np.mean(select, axis = 0)
-    
+    # calculate the difference between every pixel in 'arr' and the mean RGB vector.
+    # if provided, use the given mean RGB vector, otherwise calculate the mean RGB 
+    # value of 'select'
+    meandiff = arr - (mean_pix if mean_pix is not None else np.mean(select, axis = 0))
     '''
         Formula:
             pp = particular pixel
@@ -104,6 +114,7 @@ def mahal(img, select = 10000):
     
     # calculate the first multiplication
     output = np.dot(meandiff, invcovar)
+    print output.shape,meandiff.shape
     # do literally everything else all in this step, then reshape back to image dimensions and return
     output = np.sqrt(np.einsum('ij,ij->i', output, meandiff))
     return output.reshape(img.shape[:-1])
@@ -146,7 +157,7 @@ if __name__ == '__main__':
     # do stuff to 8 images
     for num in range(8):
         # select image
-        img = cv2.imread("testimg" + str(num) + ".jpg")
+        img = cv2.imread("./Images/testimg" + str(num) + ".jpg")
         # turn it to RGB because nobody uses BGR
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
@@ -155,7 +166,7 @@ if __name__ == '__main__':
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
         
 
-        # do fast mahalanobis distance calculation
+        # do mahalanobis distance calculation
         t = time()
         filt = mahal(img)
         times.append(time() - t)
