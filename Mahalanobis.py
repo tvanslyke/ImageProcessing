@@ -34,7 +34,7 @@ import tqdm # "sudo pip install tqdm" or "sudo apt-get install python-tqdm" for
 
 
 # run this to see just how much slower one python for loop can be
-def mahal_slow(img, select = 10000):
+def mahal_slow(img, select = 10000, mean_pix = None):
     """ Shitty version of Mahalanobis that is one million times slower left here 
         for comparison. This is NOT the original implementation, but rather one made
         to closely resemble the one below, but uses a Python for-loop instead of 
