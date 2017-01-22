@@ -1,4 +1,6 @@
-""" 
+"""
+    RUNNING THIS SCRIPT DIRECTLY WILL BARAGE YOU WITH 9 IMAGES/WINDOWS.  YOU HAVE BEEN WARNED.
+    
     For MCC UAV club.
 
     Contains functionality for finding mahalanobis distance of all pixels in an image 
@@ -23,9 +25,12 @@
     WTF is Mahalanobis?:  https://en.wikipedia.org/wiki/Mahalanobis_distance#Intuitive_explanation
 """
 
+
+
+
 import numpy as np
 from numpy.linalg import inv
-#from scipy.spatial.distance import mahalanobis  <---- don't use this slow fuck
+#from scipy.spatial.distance import mahalanobis  
 import cv2      
 
 import tqdm # "sudo pip install tqdm" or "sudo apt-get install python-tqdm" for 
@@ -35,7 +40,7 @@ import tqdm # "sudo pip install tqdm" or "sudo apt-get install python-tqdm" for
 
 # run this to see just how much slower one python for loop can be
 def mahal_slow(img, select = None, mean_pix = None):
-    """ Shitty version of Mahalanobis that is one million times slower left here 
+    """ Crappy version of Mahalanobis that is one million times slower left here 
         for comparison. This is NOT the original implementation, but rather one made
         to closely resemble the one below, but uses a Python for-loop instead of 
         numpy.einsum().  Run them side by side to see how important it is to avoid
@@ -50,7 +55,7 @@ def mahal_slow(img, select = None, mean_pix = None):
     
     meandiff = arr - (mean_pix if mean_pix is not None else np.mean(select, axis = 0))
     invcovar = inv(np.cov(np.transpose(select)))
-    output = np.zeros((meandiff.size/3, 1))
+    output = np.zeros((meandiff.size / 3, 1))
     for index, diff in tqdm.tqdm(enumerate(meandiff)):
         output[index] =  np.dot(np.dot(diff, invcovar)[np.newaxis, :], diff[:, np.newaxis])
     return np.sqrt(output).reshape(img.shape[:-1])
@@ -87,7 +92,7 @@ def mahal(img, select = None, mean_pix = None):
         # if 'select' is a number, generate an array of size 'select' containing
         # random pixels in 'arr'.
         # otherwise it should be a list of indices of pixels to choose.
-        select = np.random.choice(arr, select) if isinstance(select,int) else arr[select]
+        select = arr[np.random.randint(0, arr.shape[0], select), :] if isinstance(select,int) else arr[select]
             
     # calculate the covariance matrix inverse using the sampled array
     invcovar = inv(np.cov(np.transpose(select)))
@@ -116,6 +121,7 @@ def mahal(img, select = None, mean_pix = None):
     
     # calculate the first multiplication
     output = np.dot(meandiff, invcovar)
+
     
     # do literally everything else all in this step, then reshape back to image dimensions and return
     output = np.sqrt(np.einsum('ij,ij->i', output, meandiff))
@@ -138,7 +144,7 @@ def amplify(image, mask, cutoff = 0):
     mask_modf = np.greater(mask*100.0/np.amax(mask), cutoff) * mask
     
     # apply mask
-    output = np.einsum('ij,ijk->ijk',mask_modf, img)/np.amax(filt)
+    output = np.einsum('ij,ijk->ijk',mask_modf, image)/np.amax(mask_modf)
     
     # scale to 255 (2^8 - 1 = unsigned 8-bit max)
     output *= (255.0/np.amax(image))
@@ -146,7 +152,9 @@ def amplify(image, mask, cutoff = 0):
     return np.uint8(output)
     
 
-# 'int main()' for you C people
+'''
+    WARNING THIS WILL BARAGE YOU WITH ABOUT 10 WINDOWS.
+'''
 if __name__ == '__main__':
     # show images with matplotlib because cv2.imshow() sucks a lot
     import matplotlib.pyplot as plt
@@ -158,11 +166,11 @@ if __name__ == '__main__':
     
     # do stuff to 8 images
     for num in range(8):
+        
         # select image
         img = cv2.imread("./Images/testimg" + str(num) + ".jpg")
         # turn it to RGB because nobody uses BGR
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        
         # stuff for plots
         pixelcounts.append(img.shape[0] * img.shape[1])
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
@@ -180,10 +188,11 @@ if __name__ == '__main__':
         ax4.imshow(amplify(img, filt, cutoff = 25), interpolation='nearest' )
         
     # plot the other stuff and show
-    plt.figure()
+    fig = plt.figure()
+    plt.subplot(211)
     plt.plot(pixelcounts)
     plt.title("Number of pixels")
-    plt.figure()
+    plt.subplot(212)
     plt.plot(times)
     plt.title("Mahalanobis distance calculation time")
     plt.show()
