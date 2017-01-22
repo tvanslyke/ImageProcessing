@@ -18,11 +18,11 @@
     Original smart-guy:  Brandon Doyle      <--- His idea
     
     STRONGLY SUGGESTED READINGS:  
-    WTF is einsum?:       http://stackoverflow.com/questions/26089893/understanding-numpys-einsum
+    What is einsum?:       http://stackoverflow.com/questions/26089893/understanding-numpys-einsum
                           https://docs.scipy.org/doc/numpy/reference/generated/numpy.einsum.html
                           https://en.wikipedia.org/wiki/Einstein_notation
                           
-    WTF is Mahalanobis?:  https://en.wikipedia.org/wiki/Mahalanobis_distance#Intuitive_explanation
+    What is Mahalanobis?:  https://en.wikipedia.org/wiki/Mahalanobis_distance#Intuitive_explanation
 """
 
 
@@ -64,12 +64,15 @@ def mahal(img, select = None, mean_pix = None):
     """ Improved Mahalanobis distance algorithm originally written 
         by Brandon Doyle.  This is written with care taken to NOT 
         use Python loops.  The key breakthrough here is numpy.einsum().
+
+        The original attempts to make this concise and fast resulted in really
+        weird explosions in RAM usage by NumPy.  The only way to make it settle
+        was to loop through each pixel value and apply transformations one at a
+        time.  
         
-        IT IS STRONGLY SUGGESTED THAT FUTURE STUDENTS AVOID PYTHON LOOPS 
-        AND *** LEARN EINSUM *** !!!!!!!  numpy.einsum is basically black
-        magic until you understand it but ONCE YOU DO you can make very, very
-        efficient operations out of previous slow ones.  
-        Seriously, learn einsum.
+        numpy.einsum is basically black magic until you understand it but once
+        you do you can make very efficient 1-step operations out of previously
+        slow multi-step ones.  
         
         Args:
         img:     Input image to compute mahalanobis distance on.
@@ -119,13 +122,12 @@ def mahal(img, select = None, mean_pix = None):
         numpy.einsum() to handle the multiplication properly.
     '''
     
-    # calculate the first multiplication
+    # calculate the first multiplication. 
     output = np.dot(meandiff, invcovar)
 
     
     # do literally everything else all in this step, then reshape back to image dimensions and return
-    output = np.sqrt(np.einsum('ij,ij->i', output, meandiff))
-    return output.reshape(img.shape[:-1])
+    return np.sqrt(np.einsum('ij,ij->i', output, meandiff)).reshape(img.shape[:-1])
 
 def amplify(image, mask, cutoff = 0):
     """ Applies 'mask' to 'image' while cutting off values below a percent
@@ -153,7 +155,7 @@ def amplify(image, mask, cutoff = 0):
     
 
 '''
-    WARNING THIS WILL BARAGE YOU WITH ABOUT 10 WINDOWS.
+    WARNING THIS WILL BARAGE YOU WITH ABOUT 10 NEW WINDOWS.
 '''
 if __name__ == '__main__':
     # show images with matplotlib because cv2.imshow() sucks a lot
